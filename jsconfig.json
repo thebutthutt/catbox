@@ -1,7 +1,9 @@
 {
   "compilerOptions": {
-    "paths": {
-      "@/*": ["./src/*"]
-    }
-  }
+    "allowSyntheticDefaultImports": true,
+    "moduleResolution": "nodenext",
+    "module": "NodeNext",
+    "baseUrl": "./",
+  },
+  "exclude": ["node_modules", "coverage", "out", "dist", "public", "nginx", ".vscode"]
 }

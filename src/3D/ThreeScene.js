@@ -1,18 +1,28 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
-let camera, scene, renderer, controls;
+let camera, scene, renderer, controls, perspectiveControls, orthoControls, perspectiveCamera, orthoCamera;
 let geometry, material, mesh;
 
-const cameraSize = 50;
+const cameraSize = 20;
+
+let isPerspective = true;
 
 init();
 
 // runs before mount - just prelim setup stuff
 function init() {
-  // camera = new THREE.PerspectiveCamera(42, 1, 0.01, 10);
-  camera = new THREE.OrthographicCamera(cameraSize / -2, cameraSize / 2, cameraSize / 2, cameraSize / -2, 0.1, 1000);
-  camera.position.z = 1;
+  perspectiveCamera = new THREE.PerspectiveCamera(42, 1, 0.01, 1000);
+  orthoCamera = new THREE.OrthographicCamera(
+    cameraSize / -2,
+    cameraSize / 2,
+    cameraSize / 2,
+    cameraSize / -2,
+    0.01,
+    1000
+  );
+  perspectiveCamera.position.z = 15;
+  orthoCamera.position.z = 1;
 
   scene = new THREE.Scene();
 
@@ -21,6 +31,9 @@ function init() {
 
   mesh = new THREE.Mesh(geometry, material);
   scene.add(mesh);
+
+  const axesHelper = new THREE.AxesHelper(50);
+  scene.add(axesHelper);
 
   renderer = new THREE.WebGLRenderer({ antialias: true });
 
@@ -39,11 +52,12 @@ function onWindowResize() {
 
     renderer.setSize(width, height);
 
-    // camera.aspect = width / height;
-    camera.left = (cameraSize * aspect) / -2;
-    camera.right = (cameraSize * aspect) / 2;
+    perspectiveCamera.aspect = width / height;
+    orthoCamera.left = (cameraSize * aspect) / -2;
+    orthoCamera.right = (cameraSize * aspect) / 2;
 
-    camera.updateProjectionMatrix();
+    perspectiveCamera.updateProjectionMatrix();
+    orthoCamera.updateProjectionMatrix();
     render();
   }
 }
@@ -51,7 +65,12 @@ function onWindowResize() {
 // render if mounted
 function render() {
   if (!renderer.domElement.parentNode) return;
-  renderer.render(scene, camera);
+
+  if (isPerspective) {
+    renderer.render(scene, perspectiveCamera);
+  } else {
+    renderer.render(scene, orthoCamera);
+  }
 }
 
 // runs ONCE when react mounts the element
@@ -60,13 +79,34 @@ export function mount(container) {
   if (container) {
     container.insertBefore(renderer.domElement, container.firstChild);
     onWindowResize();
-    controls = new OrbitControls(camera, renderer.domElement);
-    controls.update();
-    controls.addEventListener("change", render);
+
+    perspectiveControls = new OrbitControls(perspectiveCamera, renderer.domElement);
+    orthoControls = new OrbitControls(orthoCamera, renderer.domElement);
+    perspectiveControls.update();
+    orthoControls.update();
+
+    perspectiveControls.addEventListener("change", render);
+    // no ortho listener
+
     render();
   }
   // on unmount
   else {
     renderer.domElement.remove();
   }
+}
+
+export function togglePerspectiveOrtho() {
+  isPerspective = !isPerspective;
+  if (isPerspective) {
+    orthoControls.removeEventListener("change");
+    perspectiveControls.addEventListener("change", render);
+  } else {
+    perspectiveControls.removeEventListener("change");
+    orthoControls.addEventListener("change", render);
+  }
+
+  perspectiveControls.update();
+  orthoControls.update();
+  render();
 }
